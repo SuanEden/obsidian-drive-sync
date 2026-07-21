@@ -1,0 +1,8 @@
+node_modules/
+main.js
+*.map
+coverage/
+data.json
+.DS_Store
+Thumbs.db
+*.log

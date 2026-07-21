@@ -1,0 +1,54 @@
+.drive-sync-settings {
+  --drive-sync-touch-target: 44px;
+}
+
+.drive-sync-status-card {
+  padding: var(--size-4-4);
+  margin-bottom: var(--size-4-4);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-secondary);
+}
+
+.drive-sync-status-card p {
+  margin-block: var(--size-4-2);
+}
+
+.drive-sync-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding-inline: var(--size-4-2);
+  border-radius: var(--radius-s);
+  font-weight: var(--font-semibold);
+  color: var(--text-on-accent);
+  background: var(--interactive-accent);
+}
+
+.drive-sync-status--not-configured,
+.drive-sync-status--offline {
+  color: var(--text-normal);
+  background: var(--background-modifier-border);
+}
+
+.drive-sync-status--conflict,
+.drive-sync-status--error {
+  background: var(--color-red);
+}
+
+.drive-sync-ignored-paths {
+  width: 100%;
+  min-height: 12rem;
+  resize: vertical;
+  font-family: var(--font-monospace);
+}
+
+.drive-sync-settings button,
+.drive-sync-settings input,
+.drive-sync-settings select {
+  min-height: var(--drive-sync-touch-target);
+}
+
+.drive-sync-status-bar {
+  white-space: nowrap;
+}

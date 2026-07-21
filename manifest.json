@@ -1,0 +1,9 @@
+{
+  "id": "obsidian-drive-sync",
+  "name": "Obsidian Drive Sync",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Sincroniza um cofre do Obsidian com uma pasta dedicada no Google Drive.",
+  "author": "Eden",
+  "isDesktopOnly": false
+}
