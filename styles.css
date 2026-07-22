@@ -10,6 +10,25 @@
   background: var(--background-secondary);
 }
 
+.drive-sync-inventory-card {
+  padding: var(--size-4-3);
+  margin-bottom: var(--size-4-2);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+}
+
+.drive-sync-inventory-card > div {
+  margin-top: var(--size-4-1);
+  color: var(--text-muted);
+}
+
+.drive-sync-inventory-card ul,
+.drive-sync-history-list {
+  margin-block: var(--size-4-2);
+  padding-inline-start: var(--size-4-6);
+}
+
 .drive-sync-status-card p {
   margin-block: var(--size-4-2);
 }
