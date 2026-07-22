@@ -408,6 +408,7 @@ export default class DriveSyncPlugin extends Plugin {
             totalFiles: progress.discoveredFiles,
             currentPath: progress.currentPath ?? 'Inventário local',
           };
+          this.settingTab?.refreshProgress();
         },
       });
       this.inventoryState = recordInventory(this.inventoryState, snapshot);
@@ -430,6 +431,7 @@ export default class DriveSyncPlugin extends Plugin {
             phase: 'syncing',
             message: `Primeiro envio: ${progress.completedFiles} de ${progress.totalFiles} arquivos.`,
           });
+          this.settingTab?.refreshProgress();
         },
       });
       this.settings.initialSyncCompletedAt = result.completedAt;
@@ -507,6 +509,7 @@ export default class DriveSyncPlugin extends Plugin {
             phase: 'syncing',
             message: `Primeiro download: ${progress.completedFiles} de ${progress.totalFiles} arquivos.`,
           });
+          this.settingTab?.refreshProgress();
         },
       });
       this.settings.initialSyncCompletedAt = result.completedAt;
@@ -556,6 +559,7 @@ export default class DriveSyncPlugin extends Plugin {
         ignoredPaths: this.settings.ignoredPaths,
         onProgress: (progress) => {
           this.inventoryProgress = progress;
+          this.settingTab?.refreshProgress();
         },
       });
       this.inventoryState = recordInventory(this.inventoryState, snapshot);

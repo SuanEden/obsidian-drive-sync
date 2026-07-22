@@ -4,6 +4,10 @@ import type DriveSyncPlugin from '../../main';
 import { syncPhaseLabel } from '../domain/sync-status';
 
 export class DriveSyncSettingTab extends PluginSettingTab {
+  private uploadProgressView: ProgressView | null = null;
+  private downloadProgressView: ProgressView | null = null;
+  private inventoryProgressView: ProgressView | null = null;
+
   constructor(
     app: App,
     private readonly plugin: DriveSyncPlugin,
@@ -16,6 +20,9 @@ export class DriveSyncSettingTab extends PluginSettingTab {
     const status = this.plugin.syncStatus.get();
     containerEl.empty();
     containerEl.addClass('drive-sync-settings');
+    this.uploadProgressView = null;
+    this.downloadProgressView = null;
+    this.inventoryProgressView = null;
 
     new Setting(containerEl).setName('Obsidian Drive Sync').setHeading();
 
@@ -197,6 +204,10 @@ export class DriveSyncSettingTab extends PluginSettingTab {
                   await this.plugin.runInitialUpload();
                 }),
             );
+          if (this.plugin.initialUploadRunning) {
+            this.uploadProgressView = createProgressView(containerEl);
+            this.updateUploadProgress();
+          }
         }
         if (this.plugin.settings.initialSyncMode === 'download-remote') {
           const completedAt = this.plugin.settings.initialSyncCompletedAt;
@@ -222,6 +233,10 @@ export class DriveSyncSettingTab extends PluginSettingTab {
                   await this.plugin.runInitialDownload();
                 }),
             );
+          if (this.plugin.initialDownloadRunning) {
+            this.downloadProgressView = createProgressView(containerEl);
+            this.updateDownloadProgress();
+          }
         }
       }
     }
@@ -312,6 +327,11 @@ export class DriveSyncSettingTab extends PluginSettingTab {
           }),
       );
 
+    if (this.plugin.inventoryRunning) {
+      this.inventoryProgressView = createProgressView(containerEl);
+      this.updateInventoryProgress();
+    }
+
     if (this.plugin.inventoryState.history.length > 0) {
       containerEl.createEl('h4', { text: 'Histórico de análises' });
       const historyList = containerEl.createEl('ul', { cls: 'drive-sync-history-list' });
@@ -334,6 +354,90 @@ export class DriveSyncSettingTab extends PluginSettingTab {
           }),
       );
   }
+
+  refreshProgress(): void {
+    this.updateUploadProgress();
+    this.updateDownloadProgress();
+    this.updateInventoryProgress();
+  }
+
+  private updateUploadProgress(): void {
+    const progress = this.plugin.initialUploadProgress;
+    if (this.uploadProgressView === null || progress === null) return;
+    updateProgressView(
+      this.uploadProgressView,
+      progress.completedFiles,
+      progress.totalFiles,
+      'Preparando e enviando',
+      progress.currentPath,
+    );
+  }
+
+  private updateDownloadProgress(): void {
+    const progress = this.plugin.initialDownloadProgress;
+    if (this.downloadProgressView === null || progress === null) return;
+    const phase = {
+      checking: 'Verificando',
+      downloading: 'Baixando',
+      applying: 'Aplicando',
+    }[progress.phase];
+    updateProgressView(
+      this.downloadProgressView,
+      progress.completedFiles,
+      progress.totalFiles,
+      phase,
+      progress.currentPath,
+    );
+  }
+
+  private updateInventoryProgress(): void {
+    const progress = this.plugin.inventoryProgress;
+    if (this.inventoryProgressView === null || progress === null) return;
+    updateProgressView(
+      this.inventoryProgressView,
+      progress.processedFiles,
+      progress.discoveredFiles,
+      'Analisando',
+      progress.currentPath ?? 'Descobrindo arquivos',
+    );
+  }
+}
+
+interface ProgressView {
+  readonly bar: HTMLProgressElement;
+  readonly summary: HTMLElement;
+  readonly currentPath: HTMLElement;
+}
+
+function createProgressView(containerEl: HTMLElement): ProgressView {
+  const panel = containerEl.createDiv({ cls: 'drive-sync-progress' });
+  const summary = panel.createDiv({ cls: 'drive-sync-progress__summary' });
+  const bar = panel.createEl('progress', {
+    cls: 'drive-sync-progress__bar',
+    attr: { max: '1', 'aria-label': 'Progresso da sincronização' },
+  });
+  const currentPath = panel.createDiv({ cls: 'drive-sync-progress__path' });
+  return { bar, summary, currentPath };
+}
+
+function updateProgressView(
+  view: ProgressView,
+  completed: number,
+  total: number,
+  action: string,
+  currentPath: string,
+): void {
+  if (total <= 0) {
+    view.bar.removeAttribute('value');
+    view.summary.setText(`${action}…`);
+  } else {
+    const safeCompleted = Math.min(Math.max(completed, 0), total);
+    const percent = Math.round((safeCompleted / total) * 100);
+    view.bar.max = total;
+    view.bar.value = safeCompleted;
+    view.summary.setText(`${action}: ${safeCompleted} de ${total} · ${percent}%`);
+  }
+  view.currentPath.setText(currentPath);
 }
 
 function initialDownloadDescription(plugin: DriveSyncPlugin): string {
@@ -356,7 +460,7 @@ function initialUploadDescription(plugin: DriveSyncPlugin): string {
   }
   const summary = plugin.inventoryState.latest?.summary;
   return summary === undefined
-    ? 'Reanalisa o cofre e envia os arquivos sequencialmente. Pode ser retomado após uma falha.'
+    ? 'Reanalisa o cofre e envia até três arquivos simultaneamente. Pode ser retomado após uma falha.'
     : `Reanalisa e prepara ${summary.fileCount} arquivos (${formatBytes(summary.totalBytes)}). O manifesto só é confirmado ao final.`;
 }
 

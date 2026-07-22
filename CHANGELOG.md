@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.5
+
+- Adiciona barra de progresso ao primeiro upload, primeiro download e análise local.
+- Mostra porcentagem, arquivos concluídos, etapa e caminho atual sem recarregar a tela.
+
 ## 0.10.4
 
 - Torna os testes de upload compatíveis com a ordem não determinística das transferências paralelas.
