@@ -585,7 +585,11 @@ export default class DriveSyncPlugin extends Plugin {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'erro desconhecido';
+  const message = error instanceof Error ? error.message : 'erro desconhecido';
+  if (/unknownhostexception|unable to resolve host|name_not_resolved/iu.test(message)) {
+    return 'O celular não conseguiu acessar o Google. Verifique Wi-Fi ou dados móveis, DNS privado, VPN e bloqueadores; depois tente novamente.';
+  }
+  return message;
 }
 
 function createPortableId(): string {
