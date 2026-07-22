@@ -1,6 +1,6 @@
 {
   "name": "obsidian-drive-sync",
-  "version": "0.10.3",
+  "version": "0.10.4",
   "description": "Plugin pessoal de sincronização bidirecional entre Obsidian e Google Drive.",
   "type": "module",
   "main": "main.js",

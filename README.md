@@ -4,7 +4,7 @@ Plugin pessoal para manter um cofre do Obsidian em uma estrutura dedicada no Goo
 
 > **Pré-lançamento:** o primeiro envio e o primeiro download estão implementados. A sincronização incremental contínua ainda não está ativa; mantenha um backup independente e não edite o mesmo cofre em dois aparelhos durante os testes.
 
-## Recursos atuais — 0.10.3
+## Recursos atuais — 0.10.4
 
 - login Google pelo navegador e retorno por `obsidian://drive-sync-auth`;
 - escopo limitado `drive.file` e conta autorizada por allowlist;
