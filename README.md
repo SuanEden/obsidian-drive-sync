@@ -4,7 +4,7 @@ Plugin pessoal para manter um cofre do Obsidian em uma estrutura dedicada no Goo
 
 > **Pré-lançamento:** o primeiro envio e o primeiro download estão implementados. A sincronização incremental contínua ainda não está ativa; mantenha um backup independente e não edite o mesmo cofre em dois aparelhos durante os testes.
 
-## Recursos atuais — 0.10.0
+## Recursos atuais — 0.10.2
 
 - login Google pelo navegador e retorno por `obsidian://drive-sync-auth`;
 - escopo limitado `drive.file` e conta autorizada por allowlist;
@@ -18,6 +18,7 @@ Plugin pessoal para manter um cofre do Obsidian em uma estrutura dedicada no Goo
 - bloqueio de sobrescrita quando uma nota local difere da remota;
 - backup de configurações locais do Obsidian antes de substituí-las no primeiro download;
 - upload multipart limitado a 20 MB como modo de compatibilidade do Obsidian e retomável acima desse limite;
+- até três uploads ou downloads simultâneos, com aplicação local sequencial;
 - diagnóstico de 18 MB que envia dados artificiais, verifica o retorno e move o teste para a lixeira;
 - regras de decisão de três vias e nomes de conflito já testados para o futuro executor incremental.
 

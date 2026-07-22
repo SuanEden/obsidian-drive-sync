@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.2
+
+- Envia e baixa até três arquivos simultaneamente para reduzir a latência do Google Drive.
+- Mantém limite de memória, verificação individual por SHA-256 e manifesto somente ao final.
+- Continua aplicando downloads localmente em sequência para preservar backups e conflitos.
+
 ## 0.10.1
 
 - Repete automaticamente falhas transitórias de DNS e transporte no Android.

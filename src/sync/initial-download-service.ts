@@ -5,7 +5,10 @@ import type { LiveFileMetadata, SyncManifest } from '../domain/file-metadata';
 import { validateVaultRelativePath } from '../domain/vault-path';
 import type { DriveFile } from '../drive/drive-client';
 import type { RemoteVaultStructure } from '../drive/remote-vault-structure';
+import { runWithConcurrency } from '../services/bounded-concurrency';
 import { calculateSha256 } from '../services/sha256';
+
+const TRANSFER_CONCURRENCY = 3;
 
 export interface InitialDownloadDriveOperations {
   listChildren(parentId: string): Promise<DriveFile[]>;
@@ -104,17 +107,19 @@ export class InitialDownloadService {
     }
 
     await ensureDirectory(this.adapter, options.stagingRoot);
-    for (const [index, item] of pending.entries()) {
+    let downloadedFiles = 0;
+    await runWithConcurrency(pending, TRANSFER_CONCURRENCY, async (item) => {
+      const content = await this.drive.downloadFile(item.metadata.remoteId!);
+      await verifyContent(content, item.metadata, item.path);
+      await this.adapter.writeBinary(item.stagingPath, content);
+      downloadedFiles += 1;
       options.onProgress?.({
-        completedFiles: index,
+        completedFiles: downloadedFiles,
         totalFiles: pending.length,
         currentPath: item.path,
         phase: 'downloading',
       });
-      const content = await this.drive.downloadFile(item.metadata.remoteId!);
-      await verifyContent(content, item.metadata, item.path);
-      await this.adapter.writeBinary(item.stagingPath, content);
-    }
+    });
 
     for (const [index, item] of pending.entries()) {
       options.onProgress?.({

@@ -5,8 +5,10 @@ import type { RemoteVaultStructure } from '../drive/remote-vault-structure';
 import type { InventorySnapshot } from '../domain/inventory';
 import type { FileMetadata, SyncManifest } from '../domain/file-metadata';
 import { calculateSha256 } from '../services/sha256';
+import { runWithConcurrency } from '../services/bounded-concurrency';
 
 const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
+const TRANSFER_CONCURRENCY = 3;
 
 export interface InitialUploadDriveOperations {
   listChildren(parentId: string): Promise<DriveFile[]>;
@@ -47,23 +49,23 @@ export class InitialUploadService {
     }
 
     this.folderCache.set('', options.structure.vaultFolderId);
-    const metadata: Record<string, FileMetadata> = {};
     const entries = [...options.snapshot.entries].sort((left, right) =>
       left.path.localeCompare(right.path),
     );
+    const parentPaths = [...new Set(entries.map((entry) => parentOf(entry.path)))].sort(
+      compareFolderPaths,
+    );
+    for (const parentPath of parentPaths) {
+      await this.ensureFolderPath(parentPath, options.structure.vaultFolderId, options.vaultId);
+    }
+    const parentIds = [...new Set(parentPaths.map((path) => this.requireFolderId(path)))];
+    for (const parentId of parentIds) await this.children(parentId);
 
-    for (const [index, entry] of entries.entries()) {
-      options.onProgress?.({
-        completedFiles: index,
-        totalFiles: entries.length,
-        currentPath: entry.path,
-      });
-      const parentPath = parentOf(entry.path);
-      const parentId = await this.ensureFolderPath(
-        parentPath,
-        options.structure.vaultFolderId,
-        options.vaultId,
-      );
+    let completedFiles = 0;
+    const metadataEntries: Array<[string, FileMetadata] | undefined> = [];
+    metadataEntries.length = entries.length;
+    await runWithConcurrency(entries, TRANSFER_CONCURRENCY, async (entry, index) => {
+      const parentId = this.requireFolderId(parentOf(entry.path));
       const data = await this.adapter.readBinary(entry.path);
       if (data.byteLength !== entry.size || (await calculateSha256(data)) !== entry.hash) {
         throw new Error(`O arquivo mudou depois do inventário: ${entry.path}`);
@@ -90,18 +92,33 @@ export class InitialUploadService {
         appProperties: contentMarker(options.vaultId, 'content-file', pathId),
       });
       replaceChild(children, uploaded);
-      metadata[entry.path] = {
-        path: entry.path,
-        remoteId: uploaded.id,
-        localModifiedAt: entry.modifiedAt,
-        remoteModifiedAt: uploaded.modifiedTime,
-        lastSyncedVersion: entry.hash,
-        changedByDeviceId: options.deviceId,
-        deleted: false,
-        size: entry.size,
-        hash: entry.hash,
-      };
-    }
+      metadataEntries[index] = [
+        entry.path,
+        {
+          path: entry.path,
+          remoteId: uploaded.id,
+          localModifiedAt: entry.modifiedAt,
+          remoteModifiedAt: uploaded.modifiedTime,
+          lastSyncedVersion: entry.hash,
+          changedByDeviceId: options.deviceId,
+          deleted: false,
+          size: entry.size,
+          hash: entry.hash,
+        },
+      ];
+      completedFiles += 1;
+      options.onProgress?.({
+        completedFiles,
+        totalFiles: entries.length,
+        currentPath: entry.path,
+      });
+    });
+    const metadata = Object.fromEntries(
+      metadataEntries.map((entry) => {
+        if (entry === undefined) throw new Error('Metadados de upload incompletos.');
+        return entry;
+      }),
+    );
 
     const completedAt = new Date().toISOString();
     const manifest: SyncManifest = {
@@ -187,6 +204,12 @@ export class InitialUploadService {
     this.childCache.set(parentId, children);
     return children;
   }
+
+  private requireFolderId(path: string): string {
+    const id = this.folderCache.get(path);
+    if (id === undefined) throw new Error(`A pasta remota não foi preparada: ${path}`);
+    return id;
+  }
 }
 
 function contentMarker(vaultId: string, role: string, pathId: string): Record<string, string> {
@@ -206,6 +229,15 @@ async function createPathId(path: string): Promise<string> {
 function parentOf(path: string): string {
   const separator = path.lastIndexOf('/');
   return separator < 0 ? '' : path.slice(0, separator);
+}
+
+function compareFolderPaths(left: string, right: string): number {
+  const depthDifference = pathDepth(left) - pathDepth(right);
+  return depthDifference === 0 ? left.localeCompare(right) : depthDifference;
+}
+
+function pathDepth(path: string): number {
+  return path.length === 0 ? 0 : path.split('/').length;
 }
 
 function nameOf(path: string): string {
