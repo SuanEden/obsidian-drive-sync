@@ -6,6 +6,7 @@ export interface DriveSyncSettings {
   ignoredPaths: string[];
   remoteVaultId: string | null;
   remoteVaultMarkerId: string | null;
+  remoteVaultName: string | null;
   initialSyncMode: InitialSyncMode | null;
   initialSyncCompletedAt: string | null;
   oauthWorkerUrl: string;
@@ -36,6 +37,7 @@ export function createDefaultSettings(configDir: string, pluginId: string): Driv
     ],
     remoteVaultId: null,
     remoteVaultMarkerId: null,
+    remoteVaultName: null,
     initialSyncMode: null,
     initialSyncCompletedAt: null,
     oauthWorkerUrl: DEFAULT_OAUTH_WORKER_URL,
@@ -60,6 +62,7 @@ export function parseSettings(
     ignoredPaths: readStringArray(data.ignoredPaths) ?? [...defaults.ignoredPaths],
     remoteVaultId: readNonEmptyString(data.remoteVaultId),
     remoteVaultMarkerId: readNonEmptyString(data.remoteVaultMarkerId),
+    remoteVaultName: readNonEmptyString(data.remoteVaultName),
     initialSyncMode: readInitialSyncMode(data.initialSyncMode),
     initialSyncCompletedAt: readIsoDate(data.initialSyncCompletedAt),
     oauthWorkerUrl: readHttpsUrl(data.oauthWorkerUrl) ?? defaults.oauthWorkerUrl,

@@ -191,12 +191,14 @@ export default class DriveSyncPlugin extends Plugin {
     try {
       const drive = this.createDriveClient();
       const markerId = createPortableId();
+      const remoteVaultName = `Obsidian Drive Sync - ${this.app.vault.getName()}`;
       await RemoteVaultStructureService.fromDriveClient(drive).createRoot(
-        `Obsidian Drive Sync - ${this.app.vault.getName()}`,
+        remoteVaultName,
         markerId,
         async (rootId) => {
           this.settings.remoteVaultId = rootId;
           this.settings.remoteVaultMarkerId = markerId;
+          this.settings.remoteVaultName = remoteVaultName;
           await this.saveSettings();
         },
       );
@@ -246,6 +248,7 @@ export default class DriveSyncPlugin extends Plugin {
     if (candidate === undefined) return;
     this.settings.remoteVaultId = candidate.rootId;
     this.settings.remoteVaultMarkerId = candidate.vaultId;
+    this.settings.remoteVaultName = candidate.name;
     this.settings.initialSyncMode = null;
     this.settings.initialSyncCompletedAt = null;
     await this.saveSettings();
@@ -256,6 +259,34 @@ export default class DriveSyncPlugin extends Plugin {
     });
     this.settingTab?.display();
     new Notice(`Cofre remoto selecionado: ${candidate.name}`);
+  }
+
+  async unlinkRemoteVault(): Promise<void> {
+    if (this.initialUploadRunning || this.initialDownloadRunning || this.remoteSetupRunning) {
+      new Notice('Aguarde a operação atual terminar antes de trocar a pasta remota.');
+      return;
+    }
+    const confirmed = window.confirm(
+      'Trocar a pasta remota deste vault? Nenhum arquivo será apagado do Google Drive.',
+    );
+    if (!confirmed) return;
+
+    this.settings.remoteVaultId = null;
+    this.settings.remoteVaultMarkerId = null;
+    this.settings.remoteVaultName = null;
+    this.settings.initialSyncMode = null;
+    this.settings.initialSyncCompletedAt = null;
+    this.remoteVaultCandidates = [];
+    this.remoteSetupMessage =
+      'Escolha ou crie uma pasta remota para este vault. Nada foi apagado do Drive.';
+    await this.saveSettings();
+    this.syncStatus.set({
+      ...this.syncStatus.get(),
+      phase: 'not-configured',
+      message: 'Escolha uma pasta remota para este vault.',
+    });
+    this.settingTab?.display();
+    new Notice('Pasta remota desvinculada somente deste vault.');
   }
 
   async ensureRemoteVaultStructure(): Promise<void> {

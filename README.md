@@ -4,13 +4,14 @@ Plugin pessoal para manter um cofre do Obsidian em uma estrutura dedicada no Goo
 
 > **Pré-lançamento:** o primeiro envio e o primeiro download estão implementados. A sincronização incremental contínua ainda não está ativa; mantenha um backup independente e não edite o mesmo cofre em dois aparelhos durante os testes.
 
-## Recursos atuais — 0.10.2
+## Recursos atuais — 0.10.3
 
 - login Google pelo navegador e retorno por `obsidian://drive-sync-auth`;
 - escopo limitado `drive.file` e conta autorizada por allowlist;
 - tokens locais no `SecretStorage` do Obsidian;
 - renovação automática do access token por Cloudflare Worker;
 - descoberta e seleção explícita de cofres remotos criados pelo plugin;
+- exibição e troca segura da pasta remota vinculada a cada vault local;
 - estrutura remota identificada por IDs e `appProperties`: `vault/`, `backups/`, `trash/` e `sync-data/`;
 - inventário local com SHA-256, texto e binários;
 - primeiro envio idempotente, com manifesto confirmado somente ao final;
