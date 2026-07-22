@@ -4,7 +4,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['main.js', 'node_modules', 'coverage'] },
+  { ignores: ['main.js', 'node_modules', 'coverage', 'oauth-worker'] },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked.map((config) => ({
     ...config,

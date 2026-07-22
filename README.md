@@ -1,81 +1,96 @@
 # Obsidian Drive Sync
 
-Base inicial de um plugin pessoal para sincronização bidirecional de um cofre do Obsidian com uma pasta dedicada no Google Drive. Esta versão **não acessa a rede e não altera arquivos do cofre**.
+Plugin pessoal para manter um cofre do Obsidian em uma estrutura dedicada no Google Drive. O projeto usa APIs portáteis do Obsidian e foi desenhado para desktop e Android.
 
-## Estado da fase 1
+> **Pré-lançamento:** o primeiro envio e o primeiro download estão implementados. A sincronização incremental contínua ainda não está ativa; mantenha um backup independente e não edite o mesmo cofre em dois aparelhos durante os testes.
 
-- plugin compatível com desktop e mobile (`isDesktopOnly: false`);
-- tela de configurações em português do Brasil;
-- indicador inicial no rodapé;
-- comando e botão **Sincronizar agora** registrados como operação segura sem efeito;
-- preferências locais tipadas e lista inicial de itens ignorados;
-- build, lint, formatação e testes automatizados.
+## Recursos atuais — 0.10.0
 
-## Arquitetura proposta
+- login Google pelo navegador e retorno por `obsidian://drive-sync-auth`;
+- escopo limitado `drive.file` e conta autorizada por allowlist;
+- tokens locais no `SecretStorage` do Obsidian;
+- renovação automática do access token por Cloudflare Worker;
+- descoberta e seleção explícita de cofres remotos criados pelo plugin;
+- estrutura remota identificada por IDs e `appProperties`: `vault/`, `backups/`, `trash/` e `sync-data/`;
+- inventário local com SHA-256, texto e binários;
+- primeiro envio idempotente, com manifesto confirmado somente ao final;
+- primeiro download baseado no manifesto, com verificação de tamanho e SHA-256;
+- bloqueio de sobrescrita quando uma nota local difere da remota;
+- backup de configurações locais do Obsidian antes de substituí-las no primeiro download;
+- upload multipart limitado a 20 MB como modo de compatibilidade do Obsidian e retomável acima desse limite;
+- diagnóstico de 18 MB que envia dados artificiais, verifica o retorno e move o teste para a lixeira;
+- regras de decisão de três vias e nomes de conflito já testados para o futuro executor incremental.
+
+## Limitações atuais
+
+- **Sincronizar agora** ainda não executa sincronização incremental.
+- Os modos **Combinar local e remoto**, exclusões, conflitos e retenção de backups ainda não estão ligados à interface.
+- O teste real de 18 MB deve ser concluído no desktop e no Android antes de enviar arquivos pessoais grandes.
+- Projetos Google OAuth no status **Teste** podem exigir nova autorização periodicamente. Revise o status de publicação antes do uso permanente.
+- Cada arquivo é carregado individualmente na memória para SHA-256 e transferência. Isso precisa ser observado em aparelhos móveis com arquivos muito grandes.
+
+## Segurança
+
+- Nunca grave `GOOGLE_CLIENT_SECRET`, tokens ou conteúdo de `data.json` no GitHub.
+- O diretório do próprio plugin, workspaces locais, `.trash`, `node_modules`, `.git` e arquivos temporários são ignorados por padrão.
+- O Worker não mantém banco de tokens; o segredo OAuth fica nos Secrets do Cloudflare.
+- O primeiro download prepara e valida os arquivos antes da aplicação. Notas locais divergentes interrompem a operação.
+- Configurações locais substituídas recebem cópia em `sync-data/pre-download-backups/`, dentro do diretório ignorado do plugin.
+
+## Estrutura
 
 ```text
-main.ts                    ciclo de vida e composição
-src/domain/                regras puras, metadados e decisões de sincronização
-src/settings/              configuração local por aparelho
-src/services/              coordenação, estado, histórico e exclusão mútua
-src/auth/                  OAuth 2.0 e ciclo de tokens (fase futura)
-src/drive/                 cliente REST do Google Drive (fase futura)
-src/vault/                 acesso portátil via Vault/Adapter (fase futura)
-src/sync/                  plano e execução transacional (fase futura)
-src/ui/                    configurações, conflitos, backups e histórico
+main.ts          ciclo de vida e composição
+src/auth/        OAuth, callback cifrado e renovação
+src/domain/      metadados e decisões puras
+src/drive/       cliente REST e estrutura remota
+src/services/    inventário, hashes e estado
+src/settings/    configuração local por aparelho
+src/sync/        primeiro envio/download e diagnósticos
+src/ui/          configurações do plugin
+oauth-worker/    Cloudflare Worker OAuth stateless
 ```
-
-O motor será dividido em duas etapas: primeiro calcula um plano imutável a partir dos estados local, remoto e da última sincronização; depois executa operações idempotentes, com backup antes de substituição e tombstones antes de exclusão. Caminhos remotos serão normalizados e validados antes de qualquer chamada ao `Adapter`. A raiz remota será persistida pelo ID do Drive.
-
-### Estrutura remota planejada
-
-A estrutura solicitada será mantida: `vault/`, `backups/`, `trash/` e `sync-data/`. Dentro de `sync-data/`, o manifesto será versionado e escrito por substituição segura. A adoção definitiva depende dos testes de concorrência e será confirmada antes de qualquer implementação que possa remover ou substituir dados.
-
-## Decisão OAuth antes da implementação
-
-O escopo planejado é `https://www.googleapis.com/auth/drive.file`, que limita o acesso aos itens criados ou explicitamente disponibilizados ao aplicativo. Não será solicitado acesso amplo a todo o Drive.
-
-- **Desktop:** aplicativo instalado, Authorization Code com PKCE, navegador do sistema e redirecionamento para loopback local. O Google mantém loopback para clientes OAuth de desktop.
-- **Android:** o loopback é bloqueado para clientes Android, e um plugin JavaScript do Obsidian não controla o pacote/assinatura do aplicativo hospedeiro nem consegue integrar diretamente o SDK nativo recomendado pelo Google. O fluxo em navegador embutido também não é permitido.
-
-Portanto, a autenticação móvel não será improvisada. As opções que precisam de decisão antes da fase de OAuth são: um pequeno callback HTTPS intermediário em domínio controlado (sem guardar tokens; ainda exige operação, política de privacidade e análise de risco), ou limitar a autorização inicial ao desktop e estudar uma transferência local protegida da credencial para o aparelho. `data.json` não é armazenamento criptografado; nenhum refresh token será salvo nele sem uma decisão explícita sobre esse risco.
-
-Não serão usados client secrets confidenciais no bundle. Um client ID de aplicativo instalado é identificador público, não senha. Tokens nunca entrarão em logs nem no conjunto sincronizado.
-
-## Fases seguintes
-
-1. Modelos de metadados, validação de caminhos, regras de comparação por hash e testes de tabela.
-2. Persistência local, inventário do cofre via `Vault`/`Adapter` e histórico, ainda sem Drive.
-3. OAuth após aprovação explícita da estratégia para Android e do armazenamento de tokens.
-4. Cliente Drive paginado, upload resumível, retry com backoff e criação/seleção da raiz remota.
-5. Primeira sincronização nos três modos, conflitos, backups e exclusões protegidas.
-6. Automação por eventos, debounce, intervalo e retomada; revisão móvel e testes de falha.
 
 ## Desenvolvimento
 
 Requer Node.js 18 ou mais recente.
 
 ```bash
-npm install
+npm ci
 npm run build
 npm run lint
+npm run format:check
 npm test
+npm --prefix oauth-worker run typecheck
 ```
 
-Para recompilar continuamente durante o desenvolvimento:
+Depois do build, recarregue o plugin no Obsidian.
 
-```bash
-npm run dev
-```
+## Instalação de teste com BRAT
 
-Depois do build, recarregue o Obsidian, abra **Configurações → Plugins da comunidade** e habilite **Obsidian Drive Sync**. Use a paleta de comandos para executar **Sincronizar agora**. A tela própria aparece nas configurações do Obsidian.
+Depois que o repositório e uma release forem publicados:
 
-## Segurança atual
+1. Instale e habilite o BRAT no Obsidian.
+2. Abra as configurações do BRAT.
+3. Escolha **Add Beta Plugin**.
+4. Informe `USUARIO/REPOSITORIO`.
+5. Habilite **Obsidian Drive Sync** nos plugins da comunidade.
 
-- nenhum dado real ou credencial é usado;
-- nenhuma API externa é chamada pelo plugin;
-- nenhum arquivo do cofre é criado, alterado ou excluído;
-- `data.json` e os futuros metadados internos do plugin são ignorados por padrão.
+Cada release deve anexar `main.js`, `manifest.json` e `styles.css`. O workflow deste repositório faz isso quando uma tag `v*` é enviada.
+
+## Processo entre aparelhos
+
+No computador principal, crie o cofre remoto e use **Enviar este cofre ao Drive**. Em um aparelho novo, abra uma pasta local nova, instale o plugin, use **Usar cofre existente** e escolha **Baixar o cofre do Drive**. Nunca envie um cofre local vazio sobre um remoto já preenchido.
+
+## Publicação segura
+
+Antes da primeira publicação:
+
+1. redefina o Client Secret que foi exposto durante o desenvolvimento;
+2. atualize o Secret `GOOGLE_CLIENT_SECRET` no Worker;
+3. execute novamente build, lint, testes e a busca por credenciais;
+4. crie o repositório sem adicionar `data.json` ou arquivos `.dev.vars`;
+5. crie e envie a tag da versão somente após o teste manual.
 
 ## Licença
 

@@ -1,0 +1,5 @@
+GOOGLE_CLIENT_ID="configure-localmente"
+GOOGLE_CLIENT_SECRET="configure-localmente"
+GOOGLE_REDIRECT_URI="http://localhost:8787/oauth/callback"
+OAUTH_STATE_SECRET="gere-ao-menos-32-bytes-aleatorios"
+ALLOWED_GOOGLE_EMAIL="configure-localmente"
