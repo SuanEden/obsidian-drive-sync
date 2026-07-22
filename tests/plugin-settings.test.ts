@@ -27,6 +27,7 @@ describe('parseSettings', () => {
       ignoredPaths: ['notas/tmp/', '*.swp'],
       remoteVaultId: 'abc123',
       remoteVaultMarkerId: null,
+      remoteVaultName: null,
       initialSyncMode: null,
       initialSyncCompletedAt: null,
       oauthWorkerUrl: DEFAULT_OAUTH_WORKER_URL,

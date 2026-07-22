@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.3
+
+- Mostra a pasta remota vinculada ao vault aberto.
+- Permite trocar explicitamente a pasta remota sem apagar conteúdo do Google Drive.
+- Limpa o modo inicial anterior ao trocar de pasta para impedir envios acidentais.
+
 ## 0.10.2
 
 - Envia e baixa até três arquivos simultaneamente para reduzir a latência do Google Drive.

@@ -121,7 +121,7 @@ export class DriveSyncSettingTab extends PluginSettingTab {
         remoteVaultSetting
           .setDesc(
             this.plugin.remoteSetupMessage ??
-              'Este aparelho está vinculado à estrutura remota criada pelo plugin.',
+              `Este vault envia e baixa somente da pasta remota: ${this.plugin.settings.remoteVaultName ?? `ID ${this.plugin.settings.remoteVaultId}`}.`,
           )
           .addButton((button) =>
             button
@@ -132,6 +132,11 @@ export class DriveSyncSettingTab extends PluginSettingTab {
               .onClick(async () => {
                 await this.plugin.ensureRemoteVaultStructure();
               }),
+          )
+          .addButton((button) =>
+            button.setButtonText('Trocar pasta remota').onClick(async () => {
+              await this.plugin.unlinkRemoteVault();
+            }),
           );
 
         new Setting(containerEl)
