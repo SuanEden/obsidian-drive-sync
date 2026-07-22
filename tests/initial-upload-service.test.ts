@@ -32,11 +32,12 @@ describe('InitialUploadService', () => {
 
     expect(result.uploadedFiles).toBe(2);
     expect(fixture.createdFolders.map((folder) => folder.name)).toEqual(['notas']);
-    expect(fixture.uploads.map((upload) => upload.name)).toEqual([
-      'interna.json',
-      'raiz.md',
-      'manifest.json',
-    ]);
+    expect(
+      fixture.uploads
+        .slice(0, -1)
+        .map((upload) => upload.name)
+        .sort(),
+    ).toEqual(['interna.json', 'raiz.md']);
     const manifestUpload = fixture.uploads[fixture.uploads.length - 1];
     expect(manifestUpload?.name).toBe('manifest.json');
     const manifest = JSON.parse(new TextDecoder().decode(manifestUpload?.data)) as {
@@ -82,7 +83,6 @@ describe('InitialUploadService', () => {
         deviceId: 'Linux',
       }),
     ).rejects.toThrow('mudou depois do inventário');
-    expect(fixture.uploads.map((upload) => upload.name)).toEqual(['interna.json']);
     expect(fixture.uploads.some((upload) => upload.name === 'manifest.json')).toBe(false);
   });
 });

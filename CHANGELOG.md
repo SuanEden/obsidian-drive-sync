@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.4
+
+- Torna os testes de upload compatíveis com a ordem não determinística das transferências paralelas.
+
 ## 0.10.3
 
 - Mostra a pasta remota vinculada ao vault aberto.
