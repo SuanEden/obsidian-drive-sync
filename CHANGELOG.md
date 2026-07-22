@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.1
+
+- Repete automaticamente falhas transitórias de DNS e transporte no Android.
+- Mostra orientação específica para Wi-Fi, dados móveis, DNS privado, VPN e bloqueadores.
+
 ## 0.10.0
 
 - Renovação automática da sessão Google pelo Worker.

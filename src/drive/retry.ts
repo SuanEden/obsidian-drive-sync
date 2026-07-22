@@ -25,15 +25,26 @@ export async function withDriveRetry<T>(
       return await operation();
     } catch (error) {
       const lastAttempt = attempt === policy.maxAttempts - 1;
-      if (!(error instanceof DriveApiError) || !error.retryable || lastAttempt) {
+      const retryable =
+        error instanceof DriveApiError ? error.retryable : isRetryableTransportError(error);
+      if (!retryable || lastAttempt) {
         throw error;
       }
 
       const exponential = Math.min(policy.maxDelayMs, policy.baseDelayMs * 2 ** attempt);
       const jittered = Math.round(exponential * (0.5 + policy.random() * 0.5));
-      await policy.sleep(error.retryAfterMs ?? jittered);
+      await policy.sleep(
+        error instanceof DriveApiError ? (error.retryAfterMs ?? jittered) : jittered,
+      );
     }
   }
 
   throw new Error('Política de tentativas inválida.');
+}
+
+export function isRetryableTransportError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return /failed to fetch|networkerror|unknownhostexception|unable to resolve host|err_(?:network_changed|internet_disconnected|name_not_resolved|connection_reset|timed_out)|timed? out/iu.test(
+    `${error.name}: ${error.message}`,
+  );
 }
